@@ -60,7 +60,7 @@ def generate_suggestions_with_ai(text, tone):
     try:
         prompt = f"""You are a website copy expert. The following is the content of a business homepage. Please generate 10 specific, advanced suggestions to improve the site's messaging. Each tip should be unique, detailed, and written for a {tone} tone. Be practical and include specific ideas, but avoid repeating headlines, subheadlines, or CTA fixes. Format as a numbered list:\n\n{text}"""
         headers = {
-            "Authorization": "Bearer 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",
+            "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://websitecopyfixer.streamlit.app",
             "X-Title": "Website Copy Fixer"
@@ -74,7 +74,10 @@ def generate_suggestions_with_ai(text, tone):
         }
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
         output = res.json()["choices"][0]["message"]["content"]
-        return [re.sub(r"^\s*\d+[\.\)]\s*", "", line.strip()) for line in output.split("\n") if line.strip()]
+        lines = [re.sub(r"^\s*\d+[\.\)]\s*", "", line.strip()) for line in output.split("\n") if line.strip()]
+        if lines and ("suggestion" in lines[0].lower() or "improve" in lines[0].lower()):
+            lines = lines[1:]
+        return lines
     except Exception as e:
         return [f"⚠️ Could not generate suggestions: {e}"]
 
@@ -123,13 +126,8 @@ if st.button("Fix My Website Copy") and url:
             )
 
         st.markdown("### 💡 Smart Suggestions to Improve Site Messaging")
-        if ai_suggestions:
-            if "suggestions to improve" in ai_suggestions[0].lower():
-                st.markdown(f"**💬 {ai_suggestions[0]}**")
-                ai_suggestions = ai_suggestions[1:]
-
-            for i, tip in enumerate(ai_suggestions, 1):
-                st.markdown(f"**{i}. {tip}**")
+        for i, tip in enumerate(ai_suggestions, 1):
+            st.markdown(f"**{i}. {tip}**")
 
         if detected_mistakes:
             st.markdown("### 🚩 Common Copy Mistakes to Avoid")
